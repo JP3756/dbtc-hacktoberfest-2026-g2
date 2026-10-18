@@ -1,7 +1,8 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from fastapi import Depends, FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
@@ -88,20 +89,61 @@ async def get_pump_history(db: AsyncSession = Depends(get_db)):
     return result.scalars().all()
 
 
-@app.post("/pump-history/")
-async def create_pump_history(
-    body: PumpHistoryRequest,
-    db: AsyncSession = Depends(get_db),
-):
-    db_pump_history = PumpHistory(
-        liters=body.liters,
-        recorded_at=body.recorded_at or datetime.now(),
-        pump_id=body.pump,
+@app.get("/alerts/")
+async def get_alerts(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(SensorData).order_by(SensorData.recorded_at.desc()).limit(1)
     )
-    db.add(db_pump_history)
-    await db.commit()
-    await db.refresh(db_pump_history)
-    return db_pump_history
+    latest = result.scalars().first()
+    if latest is None:
+        return {
+            "alerts": [
+                {"message": "No sensor readings yet", "severity": "warning"}
+            ]
+        }
+
+    alerts = []
+    if latest.water_level <= 20:
+        alerts.append(
+            {"message": "Check water level in reservoir", "severity": "critical"}
+        )
+    if latest.moisture_level <= 30:
+        alerts.append(
+            {"message": "Soil moisture is low", "severity": "warning"}
+        )
+    if datetime.now() - latest.recorded_at > timedelta(minutes=30):
+        alerts.append(
+            {"message": "Sensor readings are stale", "severity": "warning"}
+        )
+    return {"alerts": alerts}
+
+
+@app.get("/usage/today/")
+async def get_today_usage(db: AsyncSession = Depends(get_db)):
+    start_of_day = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    result = await db.execute(
+        select(func.coalesce(func.sum(PumpHistory.liters), 0.0)).where(
+            PumpHistory.recorded_at >= start_of_day,
+            PumpHistory.recorded_at < start_of_day + timedelta(days=1),
+        )
+    )
+    return {"liters": float(result.scalar_one())}
+
+
+# @app.post("/pump-history/")
+# async def create_pump_history(
+#     body: PumpHistoryRequest,
+#     db: AsyncSession = Depends(get_db),
+# ):
+#     db_pump_history = PumpHistory(
+#         liters=body.liters,
+#         recorded_at=body.recorded_at or datetime.now(),
+#         pump_id=body.pump,
+#     )
+#     db.add(db_pump_history)
+#     await db.commit()
+#     await db.refresh(db_pump_history)
+#     return db_pump_history
 
 
 @app.websocket("/mc-ws/")

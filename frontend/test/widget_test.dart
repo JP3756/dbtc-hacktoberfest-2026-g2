@@ -9,6 +9,6 @@ void main() {
     expect(find.text('Current Conditions'), findsOneWidget);
     expect(find.text('Water Usage History'), findsOneWidget);
     expect(find.text('Water Pump #1'), findsOneWidget);
-    expect(find.text('Pump #1 Overheating'), findsOneWidget);
+    expect(find.text('Alerts'), findsOneWidget);
   });
 }

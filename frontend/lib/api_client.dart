@@ -55,6 +55,18 @@ class PumpHistoryEntry {
       );
 }
 
+class Alert {
+  const Alert({required this.message, required this.severity});
+
+  final String message;
+  final String severity;
+
+  factory Alert.fromJson(Map<String, dynamic> json) => Alert(
+        message: (json['message'] as String?) ?? '',
+        severity: (json['severity'] as String?) ?? 'warning',
+      );
+}
+
 class GreenhouseSnapshot {
   const GreenhouseSnapshot({required this.sensor, required this.pumps});
 
@@ -127,6 +139,19 @@ class GreenhouseApi {
     return (response as List)
         .whereType<Map<String, dynamic>>()
         .map(PumpHistoryEntry.fromJson)
+        .toList();
+  }
+
+  Future<double> loadTodayWaterUsage() async {
+    final response = await _get('/usage/today/');
+    return (response['liters'] as num?)?.toDouble() ?? 0;
+  }
+
+  Future<List<Alert>> loadAlerts() async {
+    final response = await _get('/alerts/');
+    return (response['alerts'] as List? ?? const [])
+        .whereType<Map<String, dynamic>>()
+        .map(Alert.fromJson)
         .toList();
   }
 
