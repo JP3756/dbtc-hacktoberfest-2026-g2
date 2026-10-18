@@ -1,22 +1,24 @@
+from datetime import datetime
+
 from fastapi import Depends, FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from app.database import Base, engine, get_db
-from app.models import Pump, PumpMode, SensorData
-from app.schemas import PumpModeRequest, SensorDataRequest
+from app.models import Pump, PumpHistory, PumpMode, SensorData
+from app.schemas import PumpHistoryRequest, PumpModeRequest, SensorDataRequest
+from .config import settings
 
 app = FastAPI()
 active_websocket: WebSocket | None = None
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:7357", "http://localhost:3000"],
-    allow_origin_regex=r"https://.*\.vercel\.app",
+    allow_origins=[settings.FRONTEND_URL],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "PUT", "POST"],
+    allow_headers=["Content-Type", "Authorization"],
 )
 
 
@@ -78,6 +80,30 @@ async def update_pump_mode(
     return db_pump_mode
 
 
+@app.get("/pump-history/")
+async def get_pump_history(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(PumpHistory).order_by(PumpHistory.recorded_at.desc())
+    )
+    return result.scalars().all()
+
+
+@app.post("/pump-history/")
+async def create_pump_history(
+    body: PumpHistoryRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    db_pump_history = PumpHistory(
+        liters=body.liters,
+        recorded_at=body.recorded_at or datetime.now(),
+        pump_id=body.pump,
+    )
+    db.add(db_pump_history)
+    await db.commit()
+    await db.refresh(db_pump_history)
+    return db_pump_history
+
+
 @app.websocket("/mc-ws/")
 async def mc_ws(
     websocket: WebSocket,
@@ -94,6 +120,7 @@ async def mc_ws(
                 sensor_id=sensor_data_validated.sensor,
                 moisture_level=sensor_data_validated.moisture_level,
                 water_level=sensor_data_validated.water_level,
+                recorded_at=sensor_data_validated.recorded_at or datetime.now(),
             )
             db.add(new_sensor_data)
             await db.commit()

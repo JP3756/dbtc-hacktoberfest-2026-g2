@@ -1,4 +1,4 @@
-from sqlalchemy import Column, ForeignKey, Integer
+from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer
 from sqlalchemy.orm import relationship
 
 from app.database import Base
@@ -18,6 +18,7 @@ class SensorData(Base):
     id = Column(Integer, primary_key=True, index=True)
     moisture_level = Column(Integer, nullable=False)
     water_level = Column(Integer, nullable=False)
+    recorded_at = Column(DateTime, nullable=False)
 
     sensor_id = Column(Integer, ForeignKey("sensor.id"), nullable=False)
 
@@ -30,6 +31,7 @@ class Pump(Base):
     id = Column(Integer, primary_key=True, index=True)
 
     pump_mode = relationship("PumpMode", back_populates="pump", uselist=False)
+    history_entries = relationship("PumpHistory", back_populates="pump")
 
 
 class PumpMode(Base):
@@ -40,3 +42,15 @@ class PumpMode(Base):
 
     pump_id = Column(Integer, ForeignKey("pump.id"), nullable=False, unique=True)
     pump = relationship("Pump", back_populates="pump_mode")
+
+
+class PumpHistory(Base):
+    __tablename__ = "pump_history"
+
+    id = Column(Integer, primary_key=True, index=True)
+    liters = Column(Float, nullable=False)
+    recorded_at = Column(DateTime, nullable=False)
+
+    pump_id = Column(Integer, ForeignKey("pump.id"), nullable=True)
+
+    pump = relationship("Pump", back_populates="history_entries")
