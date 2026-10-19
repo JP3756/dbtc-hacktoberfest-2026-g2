@@ -17,243 +17,46 @@ class GreenhouseApp extends StatelessWidget {
       fontFamily: 'Roboto',
       useMaterial3: true,
     ),
-    home: const GreenhouseShell(),
-  );
-}
+    onGenerateRoute: (settings) {
+      Widget page;
 
-class GreenhouseShell extends StatefulWidget {
-  const GreenhouseShell({super.key});
-
-  @override
-  State<GreenhouseShell> createState() => _GreenhouseShellState();
-}
-
-class _GreenhouseShellState extends State<GreenhouseShell> {
-  final scaffoldKey = GlobalKey<ScaffoldState>();
-  int selectedIndex = 0;
-
-  @override
-  Widget build(BuildContext context) => LayoutBuilder(
-    builder: (context, constraints) {
-      final compact = constraints.maxWidth < 900;
-      return Scaffold(
-        key: scaffoldKey,
-        drawer: compact ? _NavigationDrawer(onSelect: _selectPage) : null,
-        body: Row(
-          children: [
-            if (!compact)
-              _Sidebar(selectedIndex: selectedIndex, onSelect: _selectPage),
-            Expanded(
-              child: SafeArea(
-                child: _PageContent(
-                  selectedIndex: selectedIndex,
-                  compact: compact,
-                  onMenu: compact
-                      ? () => scaffoldKey.currentState?.openDrawer()
-                      : null,
-                ),
-              ),
-            ),
-          ],
-        ),
+      switch (settings.name) {
+        case '/':
+          page = const HomePage();
+          break;
+        case '/watering-history':
+          page = const WateringHistoryPage();
+          break;
+        case '/sensor-reading':
+          page = const SensorReadingsPage();
+          break;
+        default:
+          page = const HomePage();
+      }
+      return PageRouteBuilder(
+        settings: settings,
+        pageBuilder: (context, animation, secondaryAnimation) => page,
+        transitionDuration: Duration.zero,
+        reverseTransitionDuration: Duration.zero,
       );
     },
   );
-
-  void _selectPage(int index) {
-    setState(() => selectedIndex = index);
-    Navigator.of(context).maybePop();
-  }
 }
 
-class _Sidebar extends StatelessWidget {
-  const _Sidebar({required this.selectedIndex, required this.onSelect});
-
-  final int selectedIndex;
-  final ValueChanged<int> onSelect;
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
 
   @override
-  Widget build(BuildContext context) => Container(
-    width: 194,
-    color: Colors.white,
-    padding: const EdgeInsets.fromLTRB(18, 30, 18, 28),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'TITO MERMANO',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-        ),
-        const SizedBox(height: 58),
-        _NavItem(
-          icon: Icons.dashboard_outlined,
-          label: 'Dashboard',
-          selected: selectedIndex == 0,
-          onTap: () => onSelect(0),
-        ),
-        _NavItem(
-          icon: Icons.local_florist_outlined,
-          label: 'Watering History',
-          selected: selectedIndex == 1,
-          onTap: () => onSelect(1),
-        ),
-        _NavItem(
-          icon: Icons.bar_chart_outlined,
-          label: 'Sensor Readings',
-          selected: selectedIndex == 2,
-          onTap: () => onSelect(2),
-        ),
-      ],
-    ),
-  );
+  State<HomePage> createState() => _HomePage();
 }
 
-class _NavigationDrawer extends StatelessWidget {
-  const _NavigationDrawer({required this.onSelect});
-
-  final ValueChanged<int> onSelect;
-
-  @override
-  Widget build(BuildContext context) => Drawer(
-    child: SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(22),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'TITO MERMANO',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 32),
-            ListTile(
-              leading: const Icon(Icons.dashboard_outlined),
-              title: const Text('Dashboard'),
-              onTap: () => onSelect(0),
-            ),
-            ListTile(
-              leading: const Icon(Icons.local_florist_outlined),
-              title: const Text('Watering History'),
-              onTap: () => onSelect(1),
-            ),
-            ListTile(
-              leading: const Icon(Icons.bar_chart_outlined),
-              title: const Text('Sensor Readings'),
-              onTap: () => onSelect(2),
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
-}
-
-class _NavItem extends StatelessWidget {
-  const _NavItem({
-    required this.icon,
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: 12),
-    child: Material(
-      type: MaterialType.transparency,
-      child: ListTile(
-        dense: true,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        selected: selected,
-        selectedTileColor: const Color(0xffe5f2dc),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-        leading: Icon(
-          icon,
-          color: selected ? const Color(0xff2d7600) : Colors.black87,
-        ),
-        title: Text(
-          label,
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
-          ),
-        ),
-        onTap: onTap,
-      ),
-    ),
-  );
-}
-
-class _PageContent extends StatelessWidget {
-  const _PageContent({
-    required this.selectedIndex,
-    required this.compact,
-    required this.onMenu,
-  });
-
-  final int selectedIndex;
-  final bool compact;
-  final VoidCallback? onMenu;
-
-  @override
-  Widget build(BuildContext context) {
-    const titles = ['Dashboard', 'Watering History', 'Sensor Readings'];
-    final content = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            if (onMenu != null)
-              IconButton(
-                onPressed: onMenu,
-                icon: const Icon(Icons.menu),
-                tooltip: 'Open navigation',
-              ),
-            Text(
-              titles[selectedIndex],
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 18),
-        if (selectedIndex == 0) const _DashboardPage(),
-        if (selectedIndex == 1) const Expanded(child: _WateringHistoryPage()),
-        if (selectedIndex == 2) const _SensorReadingsPage(),
-      ],
-    );
-
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-        compact ? 18 : 24,
-        20,
-        compact ? 18 : 24,
-        28,
-      ),
-      child: selectedIndex == 1
-          ? content
-          : SingleChildScrollView(child: content),
-    );
-  }
-}
-
-class _DashboardPage extends StatefulWidget {
-  const _DashboardPage();
-
-  @override
-  State<_DashboardPage> createState() => _DashboardPageState();
-}
-
-class _DashboardPageState extends State<_DashboardPage> {
+class _HomePage extends State<HomePage> {
   final api = GreenhouseApi();
   GreenhouseSnapshot? snapshot;
+
+  int _pumpId(int index) => snapshot != null && snapshot!.pumps.length > index
+      ? snapshot!.pumps[index].id
+      : index + 1;
 
   @override
   void initState() {
@@ -273,73 +76,445 @@ class _DashboardPageState extends State<_DashboardPage> {
   }
 
   @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      _ConditionsCard(snapshot: snapshot),
-      const SizedBox(height: 22),
-      LayoutBuilder(
-        builder: (context, constraints) {
-          final wide = constraints.maxWidth > 1050;
-          return wide
-              ? const Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Row(
+        children: [
+          SideBar(),
+          Expanded(
+            child: SafeArea(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16), // TODO for now arbritrary value
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Expanded(child: _UsageChart()),
-                    SizedBox(width: 16),
-                    SizedBox(width: 300, child: _HistorySummary()),
+                  _ConditionsCard(snapshot: snapshot),
+                  const SizedBox(height: 22),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final wide = constraints.maxWidth > 1050;
+                      return wide
+                          ? const Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(child: _UsageChart()),
+                                SizedBox(width: 16),
+                                SizedBox(width: 300, child: _HistorySummary()),
+                              ],
+                            )
+                          : const Column(
+                              children: [
+                                _UsageChart(),
+                                SizedBox(height: 16),
+                                _HistorySummary(),
+                              ],
+                            );
+                    },
+                  ),
+                  const SizedBox(height: 22),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final columns = constraints.maxWidth > 850
+                          ? 3
+                          : constraints.maxWidth > 500
+                          ? 2
+                          : 1;
+                      return Container(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xffccdec3),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Sensor Status',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+                            GridView.count(
+                              crossAxisCount: columns,
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              crossAxisSpacing: 14,
+                              mainAxisSpacing: 14,
+                              childAspectRatio: 1.1,
+                              children: [
+                                _PumpCard(
+                                  name: 'Water Pump #1',
+                                  pumpId: _pumpId(0),
+                                ),
+                                _PumpCard(
+                                  name: 'Water Pump #2',
+                                  pumpId: _pumpId(1),
+                                ),
+                                _PumpCard(
+                                  name: 'Water Pump #3',
+                                  pumpId: _pumpId(2),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 22),
+                  const _AlertsCard(),
                   ],
-                )
-              : const Column(
-                  children: [
-                    _UsageChart(),
-                    SizedBox(height: 16),
-                    _HistorySummary(),
-                  ],
-                );
-        },
-      ),
-      const SizedBox(height: 22),
-      LayoutBuilder(
-        builder: (context, constraints) {
-          final columns = constraints.maxWidth > 850
-              ? 3
-              : constraints.maxWidth > 500
-              ? 2
-              : 1;
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Sensor Status',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+                ),
               ),
-              const SizedBox(height: 12),
-              GridView.count(
-                crossAxisCount: columns,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisSpacing: 14,
-                mainAxisSpacing: 14,
-                childAspectRatio: 1.45,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class WateringHistoryPage extends StatefulWidget {
+  const WateringHistoryPage({super.key});
+
+  @override
+  State<WateringHistoryPage> createState() => _WateringHistoryPage();
+}
+
+class _WateringHistoryPage extends State<WateringHistoryPage> {
+  final api = GreenhouseApi();
+  List<PumpHistoryEntry>? history;
+  bool failed = false;
+  bool newestFirst = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final entries = await api.loadPumpHistory();
+      if (mounted) setState(() => history = entries);
+    } catch (_) {
+      if (mounted) setState(() => failed = true);
+    }
+  }
+
+  @override
+  void dispose() {
+    api.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final entries = history == null
+        ? null
+        : (List<PumpHistoryEntry>.from(history!)..sort(
+            (a, b) => newestFirst
+                ? (b.recordedAt ?? DateTime(0)).compareTo(
+                    a.recordedAt ?? DateTime(0),
+                  )
+                : (a.recordedAt ?? DateTime(0)).compareTo(
+                    b.recordedAt ?? DateTime(0),
+                  ),
+          ));
+
+    return Scaffold(
+      body: Row(
+        children: [
+          const SideBar(),
+          Expanded(
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: _Panel(
+                  title: 'Water Usage History',
+                  actions: [
+                    _SortMenu(
+                      onChanged: (value) => setState(() => newestFirst = value),
+                    ),
+                  ],
+                  fillHeight: true,
+                  child: failed
+                      ? const Center(
+                          child: Text(
+                            'Could not load watering history',
+                            style: TextStyle(color: Colors.black54),
+                          ),
+                        )
+                      : entries == null
+                      ? const Center(child: CircularProgressIndicator())
+                      : entries.isEmpty
+                      ? const _EmptyHistory()
+                      : ListView(
+                          children: [
+                            for (final entry in entries)
+                              ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                leading: const Icon(
+                                  Icons.water_drop_outlined,
+                                  color: Color(0xff2d7600),
+                                ),
+                                title: Text(_pumpLabel(entry)),
+                                subtitle: Text(
+                                  _formatRecordedAt(entry.recordedAt),
+                                ),
+                                trailing: Text(_formatLiters(entry.liters)),
+                              ),
+                          ],
+                        ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SortMenu extends StatelessWidget {
+  const _SortMenu({required this.onChanged});
+
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<bool>(
+      tooltip: 'Sort by timestamp',
+      onSelected: onChanged,
+      itemBuilder: (_) => const [
+        PopupMenuItem(value: true, child: Text('Newest first')),
+        PopupMenuItem(value: false, child: Text('Oldest first')),
+      ],
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: const Color(0xffd6d6d6)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Timestamp',
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+            ),
+            const Icon(Icons.arrow_drop_down, size: 20),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyHistory extends StatelessWidget {
+  const _EmptyHistory();
+
+  @override
+  Widget build(BuildContext context) => Center(
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: const [
+        Icon(Icons.layers_clear_outlined, size: 34, color: Colors.black54),
+        SizedBox(height: 8),
+        Text('History Clear!', style: TextStyle(color: Colors.black54)),
+      ],
+    ),
+  );
+}
+
+class SensorReadingsPage extends StatefulWidget {
+  const SensorReadingsPage({super.key});
+
+  @override
+  State<SensorReadingsPage> createState() => _SensorReadingPage();
+}
+
+class _SensorReadingPage extends State<SensorReadingsPage> {
+  final api = GreenhouseApi();
+  List<SensorReading>? readings;
+  bool failed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final entries = await api.loadSensorReadings();
+      if (mounted) setState(() => readings = entries);
+    } catch (_) {
+      if (mounted) setState(() => failed = true);
+    }
+  }
+
+  @override
+  void dispose() {
+    api.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final entries = readings;
+    final loading = entries == null && !failed;
+    final hasData = entries != null && entries.isNotEmpty;
+    final values = hasData
+        ? entries
+              .map((e) => (e.moisture / 100).clamp(0.0, 1.0).toDouble())
+              .toList()
+        : const <double>[];
+
+    return Scaffold(
+      body: Row(
+        children: [
+          const SideBar(),
+          Expanded(
+            child: SafeArea(
+              child: ListView(
+                padding: const EdgeInsets.all(16), // for now arbritrary value
                 children: [
-                  _PumpCard(name: 'Water Pump #1', pumpId: _pumpId(0)),
-                  _PumpCard(name: 'Water Pump #2', pumpId: _pumpId(1)),
-                  _PumpCard(name: 'Water Pump #3', pumpId: _pumpId(2)),
+                  _ConditionsCard(
+                    snapshot: hasData
+                        ? GreenhouseSnapshot(
+                            sensor: entries.last,
+                            pumps: const [],
+                          )
+                        : null,
+                  ),
+                  const SizedBox(height: 22),
+                  _Panel(
+                    title: 'Temperature Trends',
+                    child: SizedBox(
+                      height: 280,
+                      child: CustomPaint(
+                        painter: _ChartPainter(),
+                        child: const SizedBox.expand(),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  _Panel(
+                    title: 'Moisture Trends',
+                    child: failed
+                        ? const Text(
+                            'Could not load sensor readings',
+                            style: TextStyle(color: Colors.black54),
+                          )
+                        : loading
+                        ? const Center(
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(vertical: 24),
+                              child: CircularProgressIndicator(),
+                            ),
+                          )
+                        : !hasData
+                        ? const Text(
+                            'No sensor readings yet',
+                            style: TextStyle(color: Colors.black54),
+                          )
+                        : SizedBox(
+                            height: 280,
+                            child: CustomPaint(
+                              painter: _LineChartPainter(values: values),
+                              child: const SizedBox.expand(),
+                            ),
+                          ),
+                  ),
                 ],
               ),
-            ],
-          );
-        },
+            ),
+          ),
+        ],
       ),
-      const SizedBox(height: 22),
-      const _AlertsCard(),
-    ],
-  );
+    );
+  }
+}
 
-  int _pumpId(int index) => snapshot != null && snapshot!.pumps.length > index
-      ? snapshot!.pumps[index].id
-      : index + 1;
+class SideBar extends StatelessWidget {
+  const SideBar({super.key});
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: 194,
+    color: Colors.white,
+    padding: const EdgeInsets.fromLTRB(18, 30, 18, 28),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'TITO MERMANO',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 58),
+        InkWell(
+          onTap: () {
+            Navigator.pushNamed(context, '/');
+          },
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
+            child: Row(
+              children: [
+                Icon(Icons.grid_view_rounded),
+                SizedBox(width: 12),
+                const Flexible(
+                  child: Text("Dashboard", overflow: TextOverflow.ellipsis),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        InkWell(
+          onTap: () {
+            Navigator.pushNamed(context, '/watering-history');
+          },
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
+            child: Row(
+              children: [
+                Icon(Icons.eco_outlined),
+                SizedBox(width: 12),
+                const Flexible(
+                  child: Text("Watering History", overflow: TextOverflow.ellipsis),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        InkWell(
+          onTap: () {
+            Navigator.pushNamed(context, '/sensor-reading');
+          },
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
+            child: Row(
+              children: [
+                Icon(Icons.bar_chart_rounded),
+                SizedBox(width: 12),
+                const Flexible(
+                  child: Text("Sensor Readings", overflow: TextOverflow.ellipsis),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 class _ConditionsCard extends StatefulWidget {
@@ -508,7 +683,9 @@ class _UsageChartState extends State<_UsageChart> {
       final entries = await api.loadPumpHistory();
       if (mounted) {
         setState(
-          () => monthlyUsage = entries.isEmpty ? const [] : _monthlyUsage(entries),
+          () => monthlyUsage = entries.isEmpty
+              ? const []
+              : _monthlyUsage(entries),
         );
       }
     } catch (_) {
@@ -687,10 +864,7 @@ class _LineChartPainter extends CustomPainter {
       )..layout();
       text.paint(
         canvas,
-        Offset(
-          (size.width - text.width) / 2,
-          (size.height - text.height) / 2,
-        ),
+        Offset((size.width - text.width) / 2, (size.height - text.height) / 2),
       );
       return;
     }
@@ -838,7 +1012,10 @@ class _HistorySummaryState extends State<_HistorySummary> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Today', style: TextStyle(fontSize: 17, color: Colors.black54)),
+        const Text(
+          'Today',
+          style: TextStyle(fontSize: 17, color: Colors.black54),
+        ),
         const SizedBox(height: 12),
         if (todayEntries.isEmpty)
           const Text('No water usage', style: TextStyle(color: Colors.black54))
@@ -912,6 +1089,7 @@ class _PumpCardState extends State<_PumpCard> {
         DropdownButton<String>(
           value: mode,
           isDense: true,
+          isExpanded: true,
           items: ['Fast', 'Slow', 'Drip', 'Sprinkle']
               .map(
                 (value) =>
@@ -1019,10 +1197,16 @@ class _AlertsCardState extends State<_AlertsCard> {
 }
 
 class _Panel extends StatelessWidget {
-  const _Panel({required this.title, required this.child, this.fillHeight = false});
+  const _Panel({
+    required this.title,
+    required this.child,
+    this.fillHeight = false,
+    this.actions,
+  });
   final String title;
   final Widget child;
   final bool fillHeight;
+  final List<Widget>? actions;
 
   @override
   Widget build(BuildContext context) {
@@ -1044,88 +1228,23 @@ class _Panel extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w600),
+          Row(
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 19,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const Spacer(),
+              ...?actions,
+            ],
           ),
           const SizedBox(height: 14),
           if (fillHeight) Expanded(child: content) else content,
         ],
       ),
-    );
-  }
-}
-
-class _WateringHistoryPage extends StatefulWidget {
-  const _WateringHistoryPage();
-
-  @override
-  State<_WateringHistoryPage> createState() => _WateringHistoryPageState();
-}
-
-class _WateringHistoryPageState extends State<_WateringHistoryPage> {
-  final api = GreenhouseApi();
-  List<PumpHistoryEntry>? history;
-  bool failed = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    try {
-      final entries = await api.loadPumpHistory();
-      if (mounted) setState(() => history = entries);
-    } catch (_) {
-      if (mounted) setState(() => failed = true);
-    }
-  }
-
-  @override
-  void dispose() {
-    api.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final entries = history;
-    return _Panel(
-      title: 'Watering History',
-      fillHeight: true,
-      child: failed
-          ? const Center(
-              child: Text(
-                'Could not load watering history',
-                style: TextStyle(color: Colors.black54),
-              ),
-            )
-          : entries == null
-          ? const Center(child: CircularProgressIndicator())
-          : entries.isEmpty
-          ? const Center(
-              child: Text(
-                'No watering history yet',
-                style: TextStyle(color: Colors.black54),
-              ),
-            )
-          : ListView(
-              children: [
-                for (final entry in entries)
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: const Icon(
-                      Icons.water_drop_outlined,
-                      color: Color(0xff2d7600),
-                    ),
-                    title: Text(_pumpLabel(entry)),
-                    subtitle: Text(_formatRecordedAt(entry.recordedAt)),
-                    trailing: Text(_formatLiters(entry.liters)),
-                  ),
-              ],
-            ),
     );
   }
 }
@@ -1164,99 +1283,4 @@ String _formatRecordedAt(DateTime? recordedAt) {
   ];
   return '${months[recordedAt.month - 1]} ${recordedAt.day}, '
       '${recordedAt.year} · ${_formatTime(recordedAt)}';
-}
-
-class _SensorReadingsPage extends StatefulWidget {
-  const _SensorReadingsPage();
-
-  @override
-  State<_SensorReadingsPage> createState() => _SensorReadingsPageState();
-}
-
-class _SensorReadingsPageState extends State<_SensorReadingsPage> {
-  final api = GreenhouseApi();
-  List<SensorReading>? readings;
-  bool failed = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    try {
-      final entries = await api.loadSensorReadings();
-      if (mounted) setState(() => readings = entries);
-    } catch (_) {
-      if (mounted) setState(() => failed = true);
-    }
-  }
-
-  @override
-  void dispose() {
-    api.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final entries = readings;
-    final loading = entries == null && !failed;
-    final hasData = entries != null && entries.isNotEmpty;
-    final values = hasData
-        ? entries
-            .map((e) => (e.moisture / 100).clamp(0.0, 1.0).toDouble())
-            .toList()
-        : const <double>[];
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _ConditionsCard(
-          snapshot: hasData
-              ? GreenhouseSnapshot(sensor: entries.last, pumps: const [])
-              : null,
-        ),
-        const SizedBox(height: 22),
-        _Panel(
-          title: 'Temperature Trends',
-          child: SizedBox(
-            height: 280,
-            child: CustomPaint(
-              painter: _ChartPainter(),
-              child: const SizedBox.expand(),
-            ),
-          ),
-        ),
-        const SizedBox(height: 18),
-        _Panel(
-          title: 'Moisture Trends',
-          child: failed
-              ? const Text(
-                  'Could not load sensor readings',
-                  style: TextStyle(color: Colors.black54),
-                )
-              : loading
-              ? const Center(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: 24),
-                    child: CircularProgressIndicator(),
-                  ),
-                )
-              : !hasData
-              ? const Text(
-                  'No sensor readings yet',
-                  style: TextStyle(color: Colors.black54),
-                )
-              : SizedBox(
-                  height: 280,
-                  child: CustomPaint(
-                    painter: _LineChartPainter(values: values),
-                    child: const SizedBox.expand(),
-                  ),
-                ),
-        ),
-      ],
-    );
-  }
 }

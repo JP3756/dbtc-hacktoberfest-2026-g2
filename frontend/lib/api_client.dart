@@ -1,6 +1,17 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:web_socket_channel/web_socket_channel.dart';
+
+const apiBaseUrl = String.fromEnvironment('API_BASE_URL');
+
+final wsUrl = apiBaseUrl
+      .replaceFirst('https://', 'wss://')
+      .replaceFirst('http://', 'ws://');
+
+final WebSocketChannel channel = WebSocketChannel.connect(
+  Uri.parse(wsUrl),
+);
 
 class SensorReading {
   const SensorReading({
@@ -14,12 +25,12 @@ class SensorReading {
   final DateTime? recordedAt;
 
   factory SensorReading.fromJson(Map<String, dynamic> json) => SensorReading(
-        moisture: (json['moisture_level'] as num?)?.toInt() ?? 0,
-        waterLevel: (json['water_level'] as num?)?.toInt() ?? 0,
-        recordedAt: json['recorded_at'] == null
-            ? null
-            : DateTime.tryParse(json['recorded_at'] as String),
-      );
+    moisture: (json['moisture_level'] as num?)?.toInt() ?? 0,
+    waterLevel: (json['water_level'] as num?)?.toInt() ?? 0,
+    recordedAt: json['recorded_at'] == null
+        ? null
+        : DateTime.tryParse(json['recorded_at'] as String),
+  );
 }
 
 class PumpInfo {
@@ -29,9 +40,9 @@ class PumpInfo {
   final int? mode;
 
   factory PumpInfo.fromJson(Map<String, dynamic> json) => PumpInfo(
-        id: (json['id'] as num).toInt(),
-        mode: (json['mode'] as num?)?.toInt(),
-      );
+    id: (json['id'] as num).toInt(),
+    mode: (json['mode'] as num?)?.toInt(),
+  );
 }
 
 class PumpHistoryEntry {
@@ -62,9 +73,9 @@ class Alert {
   final String severity;
 
   factory Alert.fromJson(Map<String, dynamic> json) => Alert(
-        message: (json['message'] as String?) ?? '',
-        severity: (json['severity'] as String?) ?? 'warning',
-      );
+    message: (json['message'] as String?) ?? '',
+    severity: (json['severity'] as String?) ?? 'warning',
+  );
 }
 
 class GreenhouseSnapshot {
@@ -79,23 +90,23 @@ class GreenhouseApi {
 
   final http.Client _client;
 
-  String get baseUrl => const String.fromEnvironment(
-        'API_BASE_URL',
-      );
-
   Future<GreenhouseSnapshot> loadSnapshot() async {
     final responses = await Future.wait([
       _get('/sensor-data/'),
       _get('/pump/'),
       _get('/pump-mode/'),
     ]);
-    final sensors = (responses[0] as List)
-        .whereType<Map<String, dynamic>>()
-        .map(SensorReading.fromJson)
-        .toList()
-      ..sort((a, b) => Comparable.compare(
-          a.recordedAt ?? DateTime.fromMillisecondsSinceEpoch(0),
-          b.recordedAt ?? DateTime.fromMillisecondsSinceEpoch(0)));
+    final sensors =
+        (responses[0] as List)
+            .whereType<Map<String, dynamic>>()
+            .map(SensorReading.fromJson)
+            .toList()
+          ..sort(
+            (a, b) => Comparable.compare(
+              a.recordedAt ?? DateTime.fromMillisecondsSinceEpoch(0),
+              b.recordedAt ?? DateTime.fromMillisecondsSinceEpoch(0),
+            ),
+          );
     final pumps = (responses[1] as List)
         .whereType<Map<String, dynamic>>()
         .map((json) => PumpInfo(id: (json['id'] as num).toInt(), mode: null))
@@ -116,13 +127,17 @@ class GreenhouseApi {
 
   Future<List<SensorReading>> loadSensorReadings() async {
     final response = await _get('/sensor-data/');
-    final readings = (response as List)
-        .whereType<Map<String, dynamic>>()
-        .map(SensorReading.fromJson)
-        .toList()
-      ..sort((a, b) => Comparable.compare(
-          a.recordedAt ?? DateTime.fromMillisecondsSinceEpoch(0),
-          b.recordedAt ?? DateTime.fromMillisecondsSinceEpoch(0)));
+    final readings =
+        (response as List)
+            .whereType<Map<String, dynamic>>()
+            .map(SensorReading.fromJson)
+            .toList()
+          ..sort(
+            (a, b) => Comparable.compare(
+              a.recordedAt ?? DateTime.fromMillisecondsSinceEpoch(0),
+              b.recordedAt ?? DateTime.fromMillisecondsSinceEpoch(0),
+            ),
+          );
     return readings;
   }
 
@@ -157,7 +172,7 @@ class GreenhouseApi {
 
   Future<dynamic> _get(String path) async {
     final response = await _client
-        .get(Uri.parse('$baseUrl$path'))
+        .get(Uri.parse('$apiBaseUrl$path'))
         .timeout(const Duration(seconds: 3));
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw Exception('GET $path failed: ${response.statusCode}');
@@ -170,16 +185,23 @@ class GreenhouseApi {
     required String method,
     required Map<String, dynamic> body,
   }) async {
-    final uri = Uri.parse('$baseUrl$path');
+    final uri = Uri.parse('$apiBaseUrl$path');
     final response = method == 'PUT'
         ? await _client
-            .put(uri, headers: {'Content-Type': 'application/json'}, body: jsonEncode(body))
-            .timeout(const Duration(seconds: 3))
+              .put(
+                uri,
+                headers: {'Content-Type': 'application/json'},
+                body: jsonEncode(body),
+              )
+              .timeout(const Duration(seconds: 3))
         : throw UnsupportedError(method);
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw Exception('$method $path failed: ${response.statusCode}');
     }
   }
 
-  void dispose() => _client.close();
+  void dispose() {
+    _client.close();
+    channel.sink.close();
+  }
 }
